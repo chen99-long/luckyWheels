@@ -46,18 +46,28 @@ const Wheel: React.FC = () => {
   const [rotation, setRotation] = useState<number>(0);
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [options, setOptions] = useState<WheelOption[]>(() => {
-    if (typeof window !== 'undefined') {
+    // if (typeof window !== 'undefined') {
+    //   const savedOptions = localStorage.getItem('wheelOptions');
+    //   return savedOptions ? JSON.parse(savedOptions) : [
+    //     { label: '选项1', probability: 0.2, color: '#FF6B6B' },
+    //     { label: '选项2', probability: 0.3, color: '#4ECDC4' },
+    //     { label: '选项3', probability: 0.5, color: '#45B7D1' },
+    //   ];
+    // }
+    return [];
+  });
+  const [result, setResult] = useState<string | null>(null);
+
+  useEffect(()=>{
+    setOptions((prevOptions) => {
       const savedOptions = localStorage.getItem('wheelOptions');
       return savedOptions ? JSON.parse(savedOptions) : [
         { label: '选项1', probability: 0.2, color: '#FF6B6B' },
         { label: '选项2', probability: 0.3, color: '#4ECDC4' },
         { label: '选项3', probability: 0.5, color: '#45B7D1' },
       ];
-    }
-    return [];
-  });
-  const [result, setResult] = useState<string | null>(null);
-
+    })
+  },[])
   useEffect(() => {
     localStorage.setItem('wheelOptions', JSON.stringify(options));
   }, [options]);
@@ -95,6 +105,7 @@ const Wheel: React.FC = () => {
       const pathData = `M150,150 L${x1},${y1} A150,150 0 ${largeArcFlag},1 ${x2},${y2} Z`
 
       const result = (
+  
         <g key={index}>
           <path d={pathData} fill={option.color} />
           <text
@@ -111,6 +122,7 @@ const Wheel: React.FC = () => {
             {option.label}
           </text>
         </g>
+        
       )
 
       startAngle = endAngle
