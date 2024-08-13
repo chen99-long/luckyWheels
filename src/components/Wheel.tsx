@@ -1,5 +1,5 @@
 // components/Wheel.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from '@emotion/styled';
 import { motion, AnimatePresence } from 'framer-motion';
 import OptionManager from './OptionManager';
@@ -43,6 +43,17 @@ const ResultDisplay = styled.div`
 
 
 const Wheel: React.FC = () => {
+
+  // 音频
+  const spinSound = useRef<HTMLAudioElement | null>(null);
+  const winSound = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+      spinSound.current = new Audio('/sounds/spin.mp3');
+      winSound.current = new Audio('/sounds/win.mp3');
+  }, []);
+
+  
   const [rotation, setRotation] = useState<number>(0);
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [options, setOptions] = useState<WheelOption[]>(() => {
@@ -79,15 +90,42 @@ const Wheel: React.FC = () => {
     const newRotation = rotation + 1440 + Math.random() * 360;
     setRotation(newRotation);
     
+    if (spinSound.current) {
+      spinSound.current.currentTime = 0; // 重置音频到开始
+      spinSound.current.play();
+    }
+    
     setTimeout(() => {
       setIsSpinning(false);
       const winningIndex = Math.floor((newRotation % 360) / (360 / options.length));
       setResult(options[winningIndex].label);
-    //TODO
-    // setResult(options.filter((option) => option.probability > 0.8)[0].label);
-    
+      
+      if (spinSound.current) {
+        spinSound.current.pause(); // 停止旋转音效
+        spinSound.current.currentTime = 0; // 重置音频到开始
+      }
+      
+      if (winSound.current) {
+        winSound.current.currentTime = 0; // 重置音频到开始
+        winSound.current.play();
+        // const msg = new SpeechSynthesisUtterance(`恭喜！您抽中了${result}`);
+        //     msg.lang = 'zh-CN';  // 设置语言为中文
+        //     window.speechSynthesis.speak(msg);
+      }
     }, 5000); // 动画持续时间
   };
+
+  // 在组件卸载时停止所有音频
+  useEffect(() => {
+    return () => {
+      if (spinSound.current) {
+        spinSound.current.pause();
+      }
+      if (winSound.current) {
+        winSound.current.pause();
+      }
+    };
+  }, []);
 
   const renderSectors = () => {
     let startAngle = 0
