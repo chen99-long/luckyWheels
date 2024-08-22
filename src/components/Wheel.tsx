@@ -1,192 +1,200 @@
-// components/Wheel.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import styled from '@emotion/styled';
-import { motion, AnimatePresence } from 'framer-motion';
 import OptionManager from './OptionManager';
+import { LuckyWheel } from '@lucky-canvas/react'
 
-// ... (保留之前的样式定义)
+interface WheelOption {
+  range: number;
+  background: string;
+  fonts?: Array<{
+    text: string;
+    top?: string | number;
+    fontColor?: string;
+    fontSize?: string | number;
+    fontWeight?: string | number;
+  }>;
+  imgs?: Array<{
+    src: string;
+    width?: string | number;
+    height?: string | number;
+    top?: string | number;
+  }>;
+}
 
-
-const WheelContainer = styled.div`
-  width: 300px;
-  height: 300px;
-  position: relative;
-  margin: 50px auto;
-`
-
-const WheelSvg = styled(motion.div)`
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  position: relative;
-  overflow: hidden;
-`
-
-const SpinButton = styled.button`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 10px 20px;
-  font-size: 18px;
-  cursor: pointer;
-  z-index: 10;
-`
-
-const ResultDisplay = styled.div`
-  margin-top: 20px;
-  text-align: center;
-  font-size: 1.2rem;
-  font-weight: bold;
-`;
-
-
+interface WheelButton {
+  radius: string;
+  background: string;
+  pointer?: boolean;
+  fonts?: Array<{
+    text: string;
+    top?: string | number;
+    fontColor?: string;
+    fontSize?: string | number;
+    fontWeight?: string | number;
+  }>;
+}
 
 const Wheel: React.FC = () => {
-
-  // 音频
-  const spinSound = useRef<HTMLAudioElement | null>(null);
-  const winSound = useRef<HTMLAudioElement | null>(null);
+  const [options, setOptions] = useState<WheelOption[]>(() => {
+    return [
+      {
+        range: 20,
+        background: '#FF6B6B',
+        fonts: [{ text: '0.1g金子', fontColor: '#ffffff', fontSize: 14 }],
+        imgs: [{ src: '/img/gold.png', width: '30px', top: '20px' }]
+      },
+      {
+        range: 30,
+        background: '#4ECDC4',
+        fonts: [{ text: '10元现金', fontColor: '#ffffff', fontSize: 14 }],
+        imgs: [{ src: '/img/money.png', width: '30px', top: '20px' }]
+      },
+      {
+        range: 50,
+        background: '#45B7D1',
+        fonts: [{ text: '盲盒', fontColor: '#ffffff', fontSize: 14 }],
+        imgs: [{ src: '/img/treasure.png', width: '30px', top: '20px' }]
+      },
+    ];
+  });
 
   useEffect(() => {
-      spinSound.current = new Audio('/sounds/spin.mp3');
-      winSound.current = new Audio('/sounds/win.mp3');
-  }, []);
+    const savedOptions = localStorage.getItem('wheelOptions');
+    if (savedOptions) {
+      setOptions(JSON.parse(savedOptions));
+    }
+  }, [])
 
-  
-  const [rotation, setRotation] = useState<number>(0);
-  const [isSpinning, setIsSpinning] = useState<boolean>(false);
-  const [options, setOptions] = useState<WheelOption[]>(() => {
-    // if (typeof window !== 'undefined') {
-    //   const savedOptions = localStorage.getItem('wheelOptions');
-    //   return savedOptions ? JSON.parse(savedOptions) : [
-    //     { label: '选项1', probability: 0.2, color: '#FF6B6B' },
-    //     { label: '选项2', probability: 0.3, color: '#4ECDC4' },
-    //     { label: '选项3', probability: 0.5, color: '#45B7D1' },
-    //   ];
-    // }
-    return [];
-  });
   const [result, setResult] = useState<string | null>(null);
 
-  useEffect(()=>{
+  const [blocks] = useState([
+    { padding: '10px', background: '#869cfa' }
+  ])
+  const [prizes, setPrizes] = useState<any[]>([])
+  const [buttons, setButtons] = useState<WheelButton[]>(() => {
+    return [
+      { radius: '40%', background: '#617df2' },
+      { radius: '35%', background: '#afc8ff' },
+      {
+        radius: '30%', background: '#869cfa',
+        pointer: true,
+        fonts: [{ text: '开始', top: '-10px' }]
+      }
+    ];
+  });
+
+  // useEffect(() => {
+  //   const savedButtons = localStorage.getItem('wheelButtons');
+  //   if (savedButtons) {
+  //     setButtons(JSON.parse(savedButtons));
+  //   }
+  // }, []);
+
+  useEffect(() => {
+    localStorage.setItem('wheelButtons', JSON.stringify(buttons));
+  }, [buttons]);
+
+  const myLucky = useRef<any>(null)
+
+  useEffect(() => {
     setOptions((prevOptions) => {
       const savedOptions = localStorage.getItem('wheelOptions');
       return savedOptions ? JSON.parse(savedOptions) : [
-        { label: '选项1', probability: 0.2, color: '#FF6B6B' },
-        { label: '选项2', probability: 0.3, color: '#4ECDC4' },
-        { label: '选项3', probability: 0.5, color: '#45B7D1' },
+        { range: 20, background: '#FF6B6B' },
+        { range: 30, background: '#4ECDC4' },
+        { range: 50, background: '#45B7D1' },
       ];
     })
-  },[])
+  }, [])
+
   useEffect(() => {
     localStorage.setItem('wheelOptions', JSON.stringify(options));
   }, [options]);
 
-  const spinWheel = () => {
-    if (isSpinning) return;
-    setIsSpinning(true);
-    setResult(null);
-    const newRotation = rotation + 1440 + Math.random() * 360;
-    setRotation(newRotation);
-    
-    if (spinSound.current) {
-      spinSound.current.currentTime = 0; // 重置音频到开始
-      spinSound.current.play();
-    }
-    
-    setTimeout(() => {
-      setIsSpinning(false);
-      const winningIndex = Math.floor((newRotation % 360) / (360 / options.length));
-      setResult(options[winningIndex].label);
-      
-      if (spinSound.current) {
-        spinSound.current.pause(); // 停止旋转音效
-        spinSound.current.currentTime = 0; // 重置音频到开始
-      }
-      
-      if (winSound.current) {
-        winSound.current.currentTime = 0; // 重置音频到开始
-        winSound.current.play();
-        // const msg = new SpeechSynthesisUtterance(`恭喜！您抽中了${result}`);
-        //     msg.lang = 'zh-CN';  // 设置语言为中文
-        //     window.speechSynthesis.speak(msg);
-      }
-    }, 5000); // 动画持续时间
-  };
-
-  // 在组件卸载时停止所有音频
   useEffect(() => {
-    return () => {
-      if (spinSound.current) {
-        spinSound.current.pause();
-      }
-      if (winSound.current) {
-        winSound.current.pause();
-      }
-    };
-  }, []);
+    // 直接使用options作为prizes
+    setPrizes(options);
+  }, [options])
 
-  const renderSectors = () => {
-    let startAngle = 0
-    const total = options.reduce((sum, option) => sum + option.probability, 0)
-
-    return options.map((option, index) => {
-      const angle = (option.probability / total) * 360
-      const endAngle = startAngle + angle
-      const largeArcFlag = angle > 180 ? 1 : 0
-      const x1 = 150 + 150 * Math.cos((startAngle * Math.PI) / 180)
-      const y1 = 150 + 150 * Math.sin((startAngle * Math.PI) / 180)
-      const x2 = 150 + 150 * Math.cos((endAngle * Math.PI) / 180)
-      const y2 = 150 + 150 * Math.sin((endAngle * Math.PI) / 180)
-
-      const pathData = `M150,150 L${x1},${y1} A150,150 0 ${largeArcFlag},1 ${x2},${y2} Z`
-
-      const result = (
-  
-        <g key={index}>
-          <path d={pathData} fill={option.color} />
-          <text
-            x={150 + 120 * Math.cos(((startAngle + angle / 2) * Math.PI) / 180)}
-            y={150 + 120 * Math.sin(((startAngle + angle / 2) * Math.PI) / 180)}
-            fill="white"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize="12"
-            transform={`rotate(${startAngle + angle / 2}, 
-              ${150 + 120 * Math.cos(((startAngle + angle / 2) * Math.PI) / 180)}, 
-              ${150 + 120 * Math.sin(((startAngle + angle / 2) * Math.PI) / 180)})`}
-          >
-            {option.label}
-          </text>
-        </g>
+  const handleStart = () => {
+    if (myLucky.current) {
+      myLucky.current.play()
+      
+      // 在一定时间后停止转盘
+      setTimeout(() => {
+        // 计算总范围
+        const totalRange = options.reduce((sum, option) => sum + option.range, 0);
         
-      )
+        // 生成随机数
+        const random = Math.random() * totalRange;
+        
+        // 根据随机数和range确定中奖索引
+        let currentSum = 0;
+        const winningIndex = options.findIndex(option => {
+          currentSum += option.range;
+          return random <= currentSum;
+        });
 
-      startAngle = endAngle
-      return result
-    })
+        // 停止在选中的奖品上
+        myLucky.current.stop(winningIndex);
+      }, 5000); // 5秒后停止，您��以根据需要调整这个时间
+    }
   }
 
   return (
     <div>
-      <WheelContainer>
-        <AnimatePresence>
-          <WheelSvg
-            animate={{ rotate: rotation }}
-            transition={{ duration: 5, type: "spring" }}
+      <LuckyWheel
+        ref={myLucky}
+        width="300px"
+        height="300px"
+        blocks={blocks}
+        prizes={prizes}
+        buttons={buttons}
+        onStart={handleStart}
+        onEnd={(prize: { fonts: { text: any; }[]; }) => {
+          setResult(prize.fonts?.[0]?.text || null)
+        }}
+      />
+      {result && (
+        <div
+          style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: '#ff4d4f',
+            textAlign: 'center',
+            margin: '20px 0',
+            animation: 'bounce 0.5s ease infinite alternate'
+          }}
+        >
+          恭喜！您抽中了：
+          <span
+            style={{
+              display: 'inline-block',
+              animation: 'tada 1s ease infinite'
+            }}
           >
-            <svg width="100%" height="100%" viewBox="0 0 300 300">
-              {renderSectors()}
-            </svg>
-          </WheelSvg>
-        </AnimatePresence>
-        <SpinButton onClick={spinWheel} disabled={isSpinning}>
-          {isSpinning ? '旋转中...' : '旋转'}
-        </SpinButton>
-      </WheelContainer>
-      {result && <ResultDisplay>恭喜！您抽中了：{result}</ResultDisplay>}
-      <OptionManager options={options} setOptions={setOptions} />
+            {result}
+          </span>
+        </div>
+      )}
+      <style jsx>{`
+        @keyframes bounce {
+          from { transform: translateY(0); }
+          to { transform: translateY(-10px); }
+        }
+        @keyframes tada {
+          0% { transform: scale(1); }
+          10%, 20% { transform: scale(0.9) rotate(-3deg); }
+          30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+          40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+          100% { transform: scale(1) rotate(0); }
+        }
+      `}</style>
+      <OptionManager 
+        options={options} 
+        setOptions={setOptions} 
+        buttons={buttons}
+        setButtons={setButtons}
+      />
     </div>
   );
 };

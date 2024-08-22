@@ -1,138 +1,174 @@
 // components/OptionManager.tsx
-import React, { useState } from 'react';
-import styled from '@emotion/styled';
+import React from 'react';
+import { Form, Input, InputNumber, Button, ColorPicker, Space } from 'antd';
+import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import type { Color } from 'antd/es/color-picker';
 
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-`;
+interface WheelOption {
+  range: number;
+  background: string;
+  fonts?: Array<{
+    text: string;
+    top?: string | number;
+    fontColor?: string;
+    fontSize?: string | number;
+    fontWeight?: string | number;
+  }>;
+  imgs?: Array<{
+    src: string;
+    width?: string | number;
+    height?: string | number;
+    top?: string | number;
+  }>;
+}
 
-const Input = styled.input`
-  padding: 5px;
-  font-size: 16px;
-`;
+interface WheelButton {
+  radius: string;
+  background: string;
+  pointer?: boolean;
+  fonts?: Array<{
+    text: string;
+    top?: string | number;
+    fontColor?: string;
+    fontSize?: string | number;
+    fontWeight?: string | number;
+  }>;
+}
 
-const Button = styled.button`
-  padding: 5px 10px;
-  font-size: 16px;
-  cursor: pointer;
-  margin-right: 5px;
-`;
+interface OptionManagerProps {
+  options: WheelOption[];
+  setOptions: React.Dispatch<React.SetStateAction<WheelOption[]>>;
+  buttons: WheelButton[];
+  setButtons: React.Dispatch<React.SetStateAction<WheelButton[]>>;
+}
 
-const OptionList = styled.ul`
-  list-style-type: none;
-  padding: 0;
-`;
+const OptionManager: React.FC<OptionManagerProps> = ({ options, setOptions, buttons, setButtons }) => {
+  const [form] = Form.useForm();
 
-const OptionItem = styled.li`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-`;
-
-
-const OptionManager: React.FC<OptionManagerProps> = ({ options, setOptions }) => {
-  const [newLabel, setNewLabel] = useState('');
-  const [newProbability, setNewProbability] = useState('');
-  const [newColor, setNewColor] = useState('#000000');
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-
-  const addOrUpdateOption = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newLabel && newProbability) {
-      const newOption = {
-        label: newLabel,
-        probability: parseFloat(newProbability),
-        color: newColor
-      };
-
-      if (editingIndex !== null) {
-        // Update existing option
-        const updatedOptions = [...options];
-        updatedOptions[editingIndex] = newOption;
-        setOptions(updatedOptions);
-        setEditingIndex(null);
-      } else {
-        // Add new option
-        setOptions([...options, newOption]);
-      }
-
-      setNewLabel('');
-      setNewProbability('');
-      setNewColor('#000000');
+  const convertColorToHex = (color: Color | string | undefined): string | undefined => {
+    if (!color) return undefined;
+    if (typeof color === 'string') return color;
+    if (typeof color === 'object' && 'toHexString' in color) {
+      return color.toHexString();
     }
+    console.warn('无法转换颜色:', color);
+    return undefined;
   };
 
-  const startEditing = (index: number) => {
-    const option = options[index];
-    setNewLabel(option.label);
-    setNewProbability(option.probability.toString());
-    setNewColor(option.color);
-    setEditingIndex(index);
+  const onFinish = (values: { options: WheelOption[] }) => {
+    const processedOptions = values.options.map(option => ({
+      ...option,
+      background: convertColorToHex(option.background as Color | string),
+      fonts: option.fonts?.map(font => ({
+        ...font,
+        fontColor: convertColorToHex(font.fontColor as Color | string)
+      }))
+    }));
+    // 确保 processedOptions 的类型与 WheelOption[] 一致
+    const typedProcessedOptions: WheelOption[] = processedOptions.map(option => ({
+      ...option,
+      background: option.background || '#FFFFFF', // 使用默认颜色而不是空字符串
+      fonts: option.fonts?.map(font => ({
+        ...font,
+        fontColor: font.fontColor || undefined,
+        fontSize: font.fontSize || undefined,
+        fontWeight: font.fontWeight || undefined
+      }))
+    }));
+    setOptions(typedProcessedOptions);
+    console.log(typedProcessedOptions);
   };
 
-  const cancelEditing = () => {
-    setNewLabel('');
-    setNewProbability('');
-    setNewColor('#000000');
-    setEditingIndex(null);
-  };
-
-  const removeOption = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index));
-    if (editingIndex === index) {
-      cancelEditing();
-    }
+  const handleButtonChange = (index: number, field: keyof WheelButton, value: string) => {
+    setButtons(prevButtons => {
+      const newButtons = [...prevButtons];
+      newButtons[index] = { ...newButtons[index], [field]: value };
+      return newButtons;
+    });
   };
 
   return (
     <div>
-      <Form onSubmit={addOrUpdateOption}>
-        <Input
-          type="text"
-          value={newLabel}
-          onChange={(e) => setNewLabel(e.target.value)}
-          placeholder="选项名称"
-          required
-        />
-        <Input
-          type="number"
-          value={newProbability}
-          onChange={(e) => setNewProbability(e.target.value)}
-          placeholder="概率 (0-1)"
-          step="0.1"
-          min="0"
-          max="1"
-          required
-        />
-        <Input
-          type="color"
-          value={newColor}
-          onChange={(e) => setNewColor(e.target.value)}
-        />
-        <Button type="submit">
-          {editingIndex !== null ? '更新选项' : '添加选项'}
-        </Button>
-        {editingIndex !== null && (
-          <Button type="button" onClick={cancelEditing}>取消编辑</Button>
-        )}
+      <Form form={form} onFinish={onFinish} initialValues={{ options }}>
+        <Form.List name="options">
+          {(fields, { add, remove }) => (
+            <>
+              {fields.map((field, index) => (
+                <Space key={field.key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                  <Form.Item
+                    {...field}
+                    name={[field.name, 'fonts', 0, 'text']}
+                    label="文本"
+                    rules={[{ required: true, message: '请输入文本' }]}
+                  >
+                    <Input />
+                  </Form.Item>
+                  <Form.Item
+                    {...field}
+                    name={[field.name, 'range']}
+                    label="范围"
+                    rules={[{ required: true, message: '请输入范围' }]}
+                  >
+                    <InputNumber min={1} />
+                  </Form.Item>
+                  <Form.Item
+                    {...field}
+                    name={[field.name, 'background']}
+                    label="背景色"
+                    rules={[{ required: true, message: '请选择背景色' }]}
+                  >
+                    <ColorPicker />
+                  </Form.Item>
+                  <Form.Item
+                    {...field}
+                    name={[field.name, 'fonts', 0, 'fontColor']}
+                    label="字体颜色"
+                  >
+                    <ColorPicker />
+                  </Form.Item>
+                  <Form.Item
+                    {...field}
+                    name={[field.name, 'fonts', 0, 'fontSize']}
+                    label="字体大小"
+                  >
+                    <InputNumber min={1} />
+                  </Form.Item>
+                  <MinusCircleOutlined onClick={() => remove(field.name)} />
+                </Space>
+              ))}
+              <Form.Item>
+                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                  添加选项
+                </Button>
+              </Form.Item>
+            </>
+          )}
+        </Form.List>
+        <Form.Item>
+          <Button type="primary" htmlType="submit">
+            保存更改
+          </Button>
+        </Form.Item>
       </Form>
-      <OptionList>
-        {options.map((option, index) => (
-          <OptionItem key={index}>
-            <span style={{color: option.color}}>
-              {option.label} (概率: {option.probability})
-            </span>
-            <div>
-              <Button onClick={() => startEditing(index)}>编辑</Button>
-              <Button onClick={() => removeOption(index)}>删除</Button>
-            </div>
-          </OptionItem>
-        ))}
-      </OptionList>
+      <h3>按钮设置</h3>
+      {buttons.map((button, index) => (
+        <div key={index}>
+          <input
+            type="text"
+            value={button.radius}
+            onChange={(e) => handleButtonChange(index, 'radius', e.target.value)}
+            placeholder="半径"
+          />
+          <input
+            type="color"
+            value={button.background}
+            onChange={(e) => handleButtonChange(index, 'background', e.target.value)}
+          />
+        </div>
+      ))}
+      <button onClick={() => setButtons([...buttons, { radius: '30%', background: '#ffffff' }])}>
+        添加按钮
+      </button>
     </div>
   );
 };
