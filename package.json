@@ -11,13 +11,20 @@
   "dependencies": {
     "@emotion/react": "^11.13.0",
     "@emotion/styled": "^11.13.0",
+    "@emotion/unitless": "^0.10.0",
     "@lucky-canvas/react": "^0.1.13",
+    "@types/react-beautiful-dnd": "^13.1.8",
     "antd": "^5.20.2",
     "framer-motion": "^11.3.24",
+    "immutability-helper": "^3.1.1",
     "next": "14.2.5",
     "react": "^18",
+    "react-beautiful-dnd": "^13.1.1",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^18",
-    "react-transition-group": "^4.4.5"
+    "react-transition-group": "^4.4.5",
+    "styled-components": "^6.1.12"
   },
   "devDependencies": {
     "@types/node": "^20",

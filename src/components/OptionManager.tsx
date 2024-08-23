@@ -55,8 +55,8 @@ const OptionManager: React.FC<OptionManagerProps> = ({ options, setOptions, butt
     return undefined;
   };
 
-  const onFinish = (values: { options: WheelOption[] }) => {
-    const processedOptions = values.options.map(option => ({
+  const onValuesChange = (_: any, allValues: { options: WheelOption[] }) => {
+    const processedOptions = allValues.options.map(option => ({
       ...option,
       background: convertColorToHex(option.background as Color | string),
       fonts: option.fonts?.map(font => ({
@@ -64,10 +64,10 @@ const OptionManager: React.FC<OptionManagerProps> = ({ options, setOptions, butt
         fontColor: convertColorToHex(font.fontColor as Color | string)
       }))
     }));
-    // 确保 processedOptions 的类型与 WheelOption[] 一致
+
     const typedProcessedOptions: WheelOption[] = processedOptions.map(option => ({
       ...option,
-      background: option.background || '#FFFFFF', // 使用默认颜色而不是空字符串
+      background: option.background || '#FFFFFF',
       fonts: option.fonts?.map(font => ({
         ...font,
         fontColor: font.fontColor || undefined,
@@ -75,8 +75,8 @@ const OptionManager: React.FC<OptionManagerProps> = ({ options, setOptions, butt
         fontWeight: font.fontWeight || undefined
       }))
     }));
+
     setOptions(typedProcessedOptions);
-    console.log(typedProcessedOptions);
   };
 
   const handleButtonChange = (index: number, field: keyof WheelButton, value: string) => {
@@ -89,12 +89,16 @@ const OptionManager: React.FC<OptionManagerProps> = ({ options, setOptions, butt
 
   return (
     <div>
-      <Form form={form} onFinish={onFinish} initialValues={{ options }}>
+      <Form 
+        form={form} 
+        initialValues={{ options }} 
+        onValuesChange={onValuesChange}
+      >
         <Form.List name="options">
           {(fields, { add, remove }) => (
             <>
               {fields.map((field, index) => (
-                <Space key={field.key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                <Space key={field.key} style={{ display: 'flex', marginBottom: 8, flexWrap: 'wrap' }} align="baseline">
                   <Form.Item
                     {...field}
                     name={[field.name, 'fonts', 0, 'text']}
@@ -134,6 +138,13 @@ const OptionManager: React.FC<OptionManagerProps> = ({ options, setOptions, butt
                     <InputNumber min={1} />
                   </Form.Item>
                   <MinusCircleOutlined onClick={() => remove(field.name)} />
+                  <Button
+                    type="dashed"
+                    onClick={() => add({}, index + 1)}
+                    icon={<PlusOutlined />}
+                  >
+                    插入
+                  </Button>
                 </Space>
               ))}
               <Form.Item>
@@ -144,11 +155,6 @@ const OptionManager: React.FC<OptionManagerProps> = ({ options, setOptions, butt
             </>
           )}
         </Form.List>
-        <Form.Item>
-          <Button type="primary" htmlType="submit">
-            保存更改
-          </Button>
-        </Form.Item>
       </Form>
       <h3>按钮设置</h3>
       {buttons.map((button, index) => (
